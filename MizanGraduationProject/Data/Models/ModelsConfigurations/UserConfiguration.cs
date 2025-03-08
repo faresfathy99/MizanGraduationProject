@@ -16,6 +16,7 @@ namespace MizanGraduationProject.Data.Models.ModelsConfigurations
             builder.Property(e => e.UpdatedAt).HasDefaultValueSql("getdate()");
             builder.Property(e => e.FirstName).IsRequired().HasColumnName("First Name").HasMaxLength(20);
             builder.Property(e => e.LastName).IsRequired().HasColumnName("Last Name").HasMaxLength(20);
+            
         }
     }
 }

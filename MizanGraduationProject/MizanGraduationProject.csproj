@@ -34,8 +34,4 @@
     <PackageReference Include="MimeKit" Version="4.4.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Repositories\" />
-  </ItemGroup>
-
 </Project>

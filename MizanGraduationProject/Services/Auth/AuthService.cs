@@ -132,8 +132,8 @@ namespace MizanGraduationProject.Services.Auth
                 return new ResponseModel<LoginResponse>
                 {
                     Success = true,
-                    Message = "We have sent 2fa code to your email, please check your inbox",
-                    StatusCode = 200
+                    Message = "Failed To Login Please Try Again",
+                    StatusCode = 500
                 };
             }
             await _signInManager.SignOutAsync();

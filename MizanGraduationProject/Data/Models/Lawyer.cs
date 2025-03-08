@@ -7,6 +7,7 @@
         public string SpecializationId { get; set; } = null!;
         public DateTime StartedAt { get; set; }
         public string Location { get; set; } = null!;
+        public short Rate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public User User { get; set; } = null!;
