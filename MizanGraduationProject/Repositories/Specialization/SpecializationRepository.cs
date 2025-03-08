@@ -39,7 +39,7 @@ namespace MizanGraduationProject.Repositories.Specialization
 
         public async Task<bool> ExistsAsync(string id)
         {
-            return await _dbContext.Specializations.AnyAsync(t => t.Id == id); ;
+            return await _dbContext.Specializations.AnyAsync(t => t.Id == id);
         }
 
         public async Task<IEnumerable<Data.Models.Specialization>> GetAllAsync()

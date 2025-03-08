@@ -11,6 +11,7 @@ namespace MizanGraduationProject.Repositories.Company
         {
             this._dbContext = _dbContext;
         }
+
         public async Task AddAsync(Data.Models.Company t)
         {
             try

@@ -12,7 +12,6 @@ namespace MizanGraduationProject.Data.Models.ModelsConfigurations
             builder.Property(e => e.CreatedAt).HasDefaultValueSql("getdate()");
             builder.Property(e => e.UpdatedAt).HasDefaultValueSql("getdate()");
             builder.HasOne(e => e.Specialization).WithMany(e => e.Lawyers).HasForeignKey(e => e.SpecializationId);
-            builder.Property(e => e.Rate).IsRequired().HasColumnName("Rate").HasMaxLength(10);
         }
     }
 }

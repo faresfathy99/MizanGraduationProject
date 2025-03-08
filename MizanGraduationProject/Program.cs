@@ -7,11 +7,15 @@ using MizanGraduationProject.Data;
 using MizanGraduationProject.Data.Models;
 using MizanGraduationProject.Data.Models.Identity.Email;
 using MizanGraduationProject.Repositories.Booking;
+using MizanGraduationProject.Repositories.BookingStatus;
 using MizanGraduationProject.Repositories.Company;
+using MizanGraduationProject.Repositories.Lawyer;
+using MizanGraduationProject.Repositories.Rating;
+using MizanGraduationProject.Repositories.Review;
+using MizanGraduationProject.Repositories.Service;
 using MizanGraduationProject.Repositories.Specialization;
 using MizanGraduationProject.Services.Auth;
 using MizanGraduationProject.Services.Email;
-
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +26,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<ISpecializationRepository, SpecializationRepository>();
+builder.Services.AddScoped<IBookingStatusRepository, BookingStatusRepository>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<ILawyerRepository, LawyerRepository>();
+builder.Services.AddScoped<IRatingRepository, RatingRepository>();
+builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

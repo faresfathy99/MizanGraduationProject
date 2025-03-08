@@ -12,5 +12,6 @@ namespace MizanGraduationProject.Data.Models
         public Lawyer Lawyer { get; set; } = null!;
         public List<Review> Reviews { get; set; } = null!;
         public List<Booking> Bookings { get; set; } = null!;
+        public List<Rating> Ratings { get; set; } = null!;
     }
 }
