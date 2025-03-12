@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using MizanGraduationProject.Services.Email;
+using MizanGraduationProject.Repositories.User;
 
 namespace MizanGraduationProject.Services.Auth
 {
@@ -20,10 +21,11 @@ namespace MizanGraduationProject.Services.Auth
         private readonly IEmailService _emailService;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly AppDbContext _dbContext;
+        private readonly IUserRepository _userRepository;
 
         public AuthService(UserManager<User> userManager, SignInManager<User> signInManager,
         IConfiguration configuration, IEmailService emailService,
-        RoleManager<IdentityRole> roleManager, AppDbContext dbContext)
+        RoleManager<IdentityRole> roleManager, AppDbContext dbContext, IUserRepository userRepository)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -31,7 +33,9 @@ namespace MizanGraduationProject.Services.Auth
             _emailService = emailService;
             _roleManager = roleManager;
             _dbContext = dbContext;
+            _userRepository = userRepository;
         }
+
         private async Task assignRolesToUser(User user, List<string> roles)
         {
             if (roles == null || roles.Count == 0)
@@ -47,6 +51,7 @@ namespace MizanGraduationProject.Services.Auth
                 }
             }
         }
+
         public async Task<ResponseModel<string>> Register(RegisterDTO registerDto)
         {
             var existsByEmail = await _userManager.FindByEmailAsync(registerDto.Email);
@@ -56,6 +61,16 @@ namespace MizanGraduationProject.Services.Auth
                 {
                     Success = false,
                     Message = "Choose another email address",
+                    StatusCode = 403
+                };
+            }
+            var existsByPhone = await _userRepository.ExistsByPhone(registerDto.PhoneNumber);
+            if (existsByPhone)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = "Choose another phone number",
                     StatusCode = 403
                 };
             }
@@ -121,6 +136,7 @@ namespace MizanGraduationProject.Services.Auth
                 Email = registerDto.Email,
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now,
+                PhoneNumber = registerDto.PhoneNumber
             };
         }
 
@@ -147,6 +163,17 @@ namespace MizanGraduationProject.Services.Auth
                     StatusCode = 406
                 };
             }
+            if (user.TwoFactorEnabled)
+            {
+                string token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+                return new ResponseModel<LoginResponse>
+                {
+                    Success = true,
+                    Message = "token generated successfully",
+                    StatusCode = 200, 
+                    Model = new LoginResponse { AccessToken=new TokenType { Token = token, ExpiryTokenDate = DateTime.Now.AddMinutes(10) } }
+                };
+            }
             return await _GetJwtTokenAsync(user);
         }
 
@@ -166,6 +193,7 @@ namespace MizanGraduationProject.Services.Auth
             var jwtToken = _GetToken(authClaims);
             return jwtToken;
         }
+
         private JwtSecurityToken _GetToken(List<Claim> claims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]!));
@@ -182,6 +210,7 @@ namespace MizanGraduationProject.Services.Auth
                 );
             return token;
         }
+
         private async Task<ResponseModel<LoginResponse>> _GetJwtTokenAsync(User user)
         {
             var ResponseObject = new LoginResponse
@@ -223,6 +252,138 @@ namespace MizanGraduationProject.Services.Auth
                     StatusCode = 500
                 };
             }
+        }
+
+        public async Task<ResponseModel<string>> ForgetPasswordAsync(ForgetPasswordDto forgetPasswordDto)
+        {
+            var user = await _userManager.FindByEmailAsync(forgetPasswordDto.Email);
+            if (user == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = true,
+                    Message = $"check your inbox",
+                    StatusCode = 200
+                };
+            }
+            string token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            return new ResponseModel<string>
+            {
+                Success = true,
+                Message = $"check your inbox",
+                StatusCode = 200,
+                Model = token
+            };
+        }
+
+        public async Task<ResponseModel<string>> ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+        {
+            var user = await _userManager.FindByEmailAsync(resetPasswordDto.Email);
+            if (user == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"failed to upadate password",
+                    StatusCode = 500
+                };
+            }
+            var result = await _userManager.ResetPasswordAsync(user,
+                resetPasswordDto.Token, resetPasswordDto.Password);
+            if (result.Succeeded)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = true,
+                    Message = $"password updated successfully",
+                    StatusCode = 200
+                };
+            }
+            return new ResponseModel<string>
+            {
+                Success = false,
+                Message = $"failed to upadate password",
+                StatusCode = 500
+            };
+        }
+
+        public async Task<ResponseModel<string>> EnableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
+        {
+            var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
+            if (user == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"user not found",
+                    StatusCode = 404
+                };
+            }
+            if (user.TwoFactorEnabled)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"Two factor authentication active",
+                    StatusCode = 403
+                };
+            }
+            await _userManager.SetTwoFactorEnabledAsync(user, true);
+            await _userManager.UpdateAsync(user);
+            return new ResponseModel<string>
+            {
+                Success = true,
+                Message = $"Two factor authentication enabled successfully",
+                StatusCode = 200,
+            };
+        }
+
+        public async Task<ResponseModel<string>> DisableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
+        {
+            var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
+            if (user == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"user not found",
+                    StatusCode = 404
+                };
+            }
+            if (!user.TwoFactorEnabled)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"Two factor authentication not active",
+                    StatusCode = 403
+                };
+            }
+            await _userManager.SetTwoFactorEnabledAsync(user, false);
+            await _userManager.UpdateAsync(user);
+            return new ResponseModel<string>
+            {
+                Success = true,
+                Message = $"Two factor authentication disabled successfully",
+                StatusCode = 200,
+            };
+        }
+
+        public async Task<ResponseModel<LoginResponse>> Login2fa(Login2faDTO login2FaDTO)
+        {
+            //await _signInManager.PasswordSignInAsync(login2FaDTO.Email, "", false, false);
+            var user = await _userManager.FindByEmailAsync(login2FaDTO.Email);
+            var signIn = await _signInManager.TwoFactorSignInAsync("Email", login2FaDTO.Token, false, true);
+            if (!signIn.Succeeded && user != null)
+            {
+                return await _GetJwtTokenAsync(user);
+            }
+            return new ResponseModel<LoginResponse>
+            {
+                Success = false,
+                Message = $"invalid email or token",
+                StatusCode = 400
+            };
         }
     }
 }

@@ -17,6 +17,11 @@ namespace MizanGraduationProject.Data.DTOs
         [RegularExpression("^\\S+@\\S+\\.\\S+$")]
         public string Email { get; set; } = null!;
 
+        [Required(ErrorMessage = "Please Enter your PhoneNumber")]
+        [Phone]
+        [RegularExpression("^01[0-2,5]{1}[0-9]{8}$", ErrorMessage ="Please enter valid phone number")]
+        public string PhoneNumber { get; set; } = null!;
+
         [Required(ErrorMessage = "Password should be at least 8 digits containg lower, upper case characters and special characters")]
         public string Password { get; set; } = null!;
     }

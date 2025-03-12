@@ -14,6 +14,7 @@ using MizanGraduationProject.Repositories.Rating;
 using MizanGraduationProject.Repositories.Review;
 using MizanGraduationProject.Repositories.Service;
 using MizanGraduationProject.Repositories.Specialization;
+using MizanGraduationProject.Repositories.User;
 using MizanGraduationProject.Services.Auth;
 using MizanGraduationProject.Services.Email;
 using System.Text;
@@ -31,6 +32,7 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<ILawyerRepository, LawyerRepository>();
 builder.Services.AddScoped<IRatingRepository, RatingRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
