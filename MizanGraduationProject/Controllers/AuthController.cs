@@ -88,9 +88,9 @@ namespace MizanGraduationProject.Controllers
             try
             {
                 var response = await _authService.Login(loginDto);
-                if(response.Success && response.Model != null && response.Model.AccessToken != null)
+                if(response.Message == "2fa")
                 {
-                    string token = response.Model.AccessToken.Token;
+                    string token = response.Model.AccessToken!.Token;
                     var message = new Message(new string[] { loginDto.Email },
                             "two factor authentication Token", token);
                     _emailService.SendEmail(message);

@@ -163,18 +163,22 @@ namespace MizanGraduationProject.Services.Auth
                     StatusCode = 406
                 };
             }
-            if (user.TwoFactorEnabled)
+            if (user.TwoFactorEnabled == false)
+            {
+                return await _GetJwtTokenAsync(user); 
+            }
+            else
             {
                 string token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
                 return new ResponseModel<LoginResponse>
                 {
                     Success = true,
-                    Message = "token generated successfully",
-                    StatusCode = 200, 
-                    Model = new LoginResponse { AccessToken=new TokenType { Token = token, ExpiryTokenDate = DateTime.Now.AddMinutes(10) } }
+                    Message = "2fa",
+                    StatusCode = 200,
+                    Model = new LoginResponse { AccessToken = new TokenType { Token = token, ExpiryTokenDate = DateTime.Now.AddMinutes(10) } }
                 };
             }
-            return await _GetJwtTokenAsync(user);
+            
         }
 
         private async Task<JwtSecurityToken> _GenerateUserToken(User user)
