@@ -163,11 +163,7 @@ namespace MizanGraduationProject.Services.Auth
                     StatusCode = 406
                 };
             }
-            if (user.TwoFactorEnabled == false)
-            {
-                return await _GetJwtTokenAsync(user); 
-            }
-            else
+            if (user.TwoFactorEnabled)
             {
                 string token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
                 return new ResponseModel<LoginResponse>
@@ -177,8 +173,9 @@ namespace MizanGraduationProject.Services.Auth
                     StatusCode = 200,
                     Model = new LoginResponse { AccessToken = new TokenType { Token = token, ExpiryTokenDate = DateTime.Now.AddMinutes(10) } }
                 };
+                
             }
-            
+            return await _GetJwtTokenAsync(user);
         }
 
         private async Task<JwtSecurityToken> _GenerateUserToken(User user)
@@ -311,67 +308,67 @@ namespace MizanGraduationProject.Services.Auth
             };
         }
 
-        public async Task<ResponseModel<string>> EnableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
-        {
-            var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
-            if (user == null)
-            {
-                return new ResponseModel<string>
-                {
-                    Success = false,
-                    Message = $"user not found",
-                    StatusCode = 404
-                };
-            }
-            if (user.TwoFactorEnabled)
-            {
-                return new ResponseModel<string>
-                {
-                    Success = false,
-                    Message = $"Two factor authentication active",
-                    StatusCode = 403
-                };
-            }
-            await _userManager.SetTwoFactorEnabledAsync(user, true);
-            await _userManager.UpdateAsync(user);
-            return new ResponseModel<string>
-            {
-                Success = true,
-                Message = $"Two factor authentication enabled successfully",
-                StatusCode = 200,
-            };
-        }
+        //public async Task<ResponseModel<string>> EnableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
+        //{
+        //    var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
+        //    if (user == null)
+        //    {
+        //        return new ResponseModel<string>
+        //        {
+        //            Success = false,
+        //            Message = $"user not found",
+        //            StatusCode = 404
+        //        };
+        //    }
+        //    if (user.TwoFactorEnabled)
+        //    {
+        //        return new ResponseModel<string>
+        //        {
+        //            Success = false,
+        //            Message = $"Two factor authentication active",
+        //            StatusCode = 403
+        //        };
+        //    }
+        //    await _userManager.SetTwoFactorEnabledAsync(user, true);
+        //    await _userManager.UpdateAsync(user);
+        //    return new ResponseModel<string>
+        //    {
+        //        Success = true,
+        //        Message = $"Two factor authentication enabled successfully",
+        //        StatusCode = 200,
+        //    };
+        //}
 
-        public async Task<ResponseModel<string>> DisableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
-        {
-            var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
-            if (user == null)
-            {
-                return new ResponseModel<string>
-                {
-                    Success = false,
-                    Message = $"user not found",
-                    StatusCode = 404
-                };
-            }
-            if (!user.TwoFactorEnabled)
-            {
-                return new ResponseModel<string>
-                {
-                    Success = false,
-                    Message = $"Two factor authentication not active",
-                    StatusCode = 403
-                };
-            }
-            await _userManager.SetTwoFactorEnabledAsync(user, false);
-            await _userManager.UpdateAsync(user);
-            return new ResponseModel<string>
-            {
-                Success = true,
-                Message = $"Two factor authentication disabled successfully",
-                StatusCode = 200,
-            };
-        }
+        //public async Task<ResponseModel<string>> DisableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
+        //{
+        //    var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
+        //    if (user == null)
+        //    {
+        //        return new ResponseModel<string>
+        //        {
+        //            Success = false,
+        //            Message = $"user not found",
+        //            StatusCode = 404
+        //        };
+        //    }
+        //    if (!user.TwoFactorEnabled)
+        //    {
+        //        return new ResponseModel<string>
+        //        {
+        //            Success = false,
+        //            Message = $"Two factor authentication not active",
+        //            StatusCode = 403
+        //        };
+        //    }
+        //    await _userManager.SetTwoFactorEnabledAsync(user, false);
+        //    await _userManager.UpdateAsync(user);
+        //    return new ResponseModel<string>
+        //    {
+        //        Success = true,
+        //        Message = $"Two factor authentication disabled successfully",
+        //        StatusCode = 200,
+        //    };
+        //}
 
         public async Task<ResponseModel<LoginResponse>> Login2fa(Login2faDTO login2FaDTO)
         {

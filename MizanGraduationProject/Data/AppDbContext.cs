@@ -44,7 +44,9 @@ namespace MizanGraduationProject.Data
                    .ApplyConfiguration(new ServiceConfigurations())
                    .ApplyConfiguration(new BookingStatusConfiguration())
                    .ApplyConfiguration(new BookingConfiguration())
-                   .ApplyConfiguration(new RatingConfiguration());
+                   .ApplyConfiguration(new RatingConfiguration())
+                   .ApplyConfiguration(new LocationConfiguration())
+                   .ApplyConfiguration(new UserTypeConfiguration());
         }
         public DbSet<Lawyer> Lawyers { get; set; }
         public DbSet<Review> Reviews { get; set; }
@@ -54,5 +56,7 @@ namespace MizanGraduationProject.Data
         public DbSet<BookingStatus> BookingStatuses { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<Rating> Ratings { get; set; }
+        public DbSet<Location> Locations { get; set; }
+        public DbSet<UserTypeModel> UserTypeModels { get; set; }
     }
 }

@@ -88,19 +88,19 @@ namespace MizanGraduationProject.Controllers
             try
             {
                 var response = await _authService.Login(loginDto);
-                if(response.Message == "2fa")
-                {
-                    string token = response.Model.AccessToken!.Token;
-                    var message = new Message(new string[] { loginDto.Email },
-                            "two factor authentication Token", token);
-                    _emailService.SendEmail(message);
-                    return Ok(new
-                    {
-                        Success = response.Success,
-                        StatusCode = response.StatusCode,
-                        Message = "two factor token sent to you check your inbox"
-                    });
-                }
+                //if(response.Message == "2fa")
+                //{
+                //    string token = response.Model.AccessToken!.Token;
+                //    var message = new Message(new string[] { loginDto.Email },
+                //            "two factor authentication Token", token);
+                //    _emailService.SendEmail(message);
+                //    return Ok(new
+                //    {
+                //        Success = response.Success,
+                //        StatusCode = response.StatusCode,
+                //        Message = "two factor token sent to you check your inbox"
+                //    });
+                //}
                 if (response.Success)
                 {
                     return Ok(response);
@@ -118,31 +118,31 @@ namespace MizanGraduationProject.Controllers
             }
         }
 
-        [HttpPost("login-2fa")]
-        [ProducesResponseType(201)]
-        [ProducesResponseType(500)]
-        [ProducesResponseType(400)]
-        public async Task<IActionResult> Login2fa([FromForm] Login2faDTO login2FaDTO)
-        {
-            try
-            {
-                var response = await _authService.Login2fa(login2FaDTO);
-                if (response.Success)
-                {
-                    return Ok(response);
-                }
-                return StatusCode(400, response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    Message = ex.Message,
-                    Success = false,
-                    StatusCode = 500
-                });
-            }
-        }
+        //[HttpPost("login-2fa")]
+        //[ProducesResponseType(201)]
+        //[ProducesResponseType(500)]
+        //[ProducesResponseType(400)]
+        //public async Task<IActionResult> Login2fa([FromForm] Login2faDTO login2FaDTO)
+        //{
+        //    try
+        //    {
+        //        var response = await _authService.Login2fa(login2FaDTO);
+        //        if (response.Success)
+        //        {
+        //            return Ok(response);
+        //        }
+        //        return StatusCode(400, response);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new
+        //        {
+        //            Message = ex.Message,
+        //            Success = false,
+        //            StatusCode = 500
+        //        });
+        //    }
+        //}
 
         [HttpGet("logout")]
         public async Task<IActionResult> Logout()
@@ -208,49 +208,49 @@ namespace MizanGraduationProject.Controllers
             }
         }
 
-        [HttpPost("enable-2fa")]
-        [ProducesResponseType(201)]
-        [ProducesResponseType(500)]
-        [ProducesResponseType(406)]
-        public async Task<IActionResult> EnableTwoFactorAuthenticationAsync([FromForm] EnableDisable2fa enableDisable2Fa)
-        {
-            try
-            {
-                var response = await _authService.EnableTwoFactorAuthenticationAsync(enableDisable2Fa);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    Message = ex.Message,
-                    Success = false,
-                    StatusCode = 500
-                });
-            }
-        }
+        //[HttpPost("enable-2fa")]
+        //[ProducesResponseType(201)]
+        //[ProducesResponseType(500)]
+        //[ProducesResponseType(406)]
+        //public async Task<IActionResult> EnableTwoFactorAuthenticationAsync([FromForm] EnableDisable2fa enableDisable2Fa)
+        //{
+        //    try
+        //    {
+        //        var response = await _authService.EnableTwoFactorAuthenticationAsync(enableDisable2Fa);
+        //        return Ok(response);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new
+        //        {
+        //            Message = ex.Message,
+        //            Success = false,
+        //            StatusCode = 500
+        //        });
+        //    }
+        //}
 
-        [HttpPost("disable-2fa")]
-        [ProducesResponseType(201)]
-        [ProducesResponseType(500)]
-        [ProducesResponseType(406)]
-        public async Task<IActionResult> DisableTwoFactorAuthenticationAsync([FromForm] EnableDisable2fa enableDisable2Fa)
-        {
-            try
-            {
-                var response = await _authService.DisableTwoFactorAuthenticationAsync(enableDisable2Fa);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    Message = ex.Message,
-                    Success = false,
-                    StatusCode = 500
-                });
-            }
-        }
+        //[HttpPost("disable-2fa")]
+        //[ProducesResponseType(201)]
+        //[ProducesResponseType(500)]
+        //[ProducesResponseType(406)]
+        //public async Task<IActionResult> DisableTwoFactorAuthenticationAsync([FromForm] EnableDisable2fa enableDisable2Fa)
+        //{
+        //    try
+        //    {
+        //        var response = await _authService.DisableTwoFactorAuthenticationAsync(enableDisable2Fa);
+        //        return Ok(response);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new
+        //        {
+        //            Message = ex.Message,
+        //            Success = false,
+        //            StatusCode = 500
+        //        });
+        //    }
+        //}
 
 
     }

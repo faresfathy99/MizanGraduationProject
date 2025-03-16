@@ -14,7 +14,7 @@ namespace MizanGraduationProject.Services.Auth
         Task<ResponseModel<bool>> Logout();
         Task<ResponseModel<string>> ForgetPasswordAsync(ForgetPasswordDto forgetPasswordDto);
         Task<ResponseModel<string>> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
-        Task<ResponseModel<string>> EnableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa);
-        Task<ResponseModel<string>> DisableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa);
+        //Task<ResponseModel<string>> EnableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa);
+        //Task<ResponseModel<string>> DisableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa);
     }
 }
