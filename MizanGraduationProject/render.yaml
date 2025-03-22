@@ -1,1 +1,10 @@
-﻿
+﻿services:
+- type: web
+name: grad-api
+runtime: dotnet
+buildCommand: dotnet build
+startCommand: dotnet MyDotnetApi.dll
+env: dotnet
+plan: free
+branch: main
+region: oregon
