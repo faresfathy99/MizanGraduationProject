@@ -10,6 +10,14 @@ using System.Security.Claims;
 using System.Text;
 using MizanGraduationProject.Services.Email;
 using MizanGraduationProject.Repositories.User;
+using MizanGraduationProject.Repositories.VerifyOtp;
+using System.Security.Policy;
+using MizanGraduationProject.Data.Models.Identity.Email;
+using MizanGraduationProject.Data.Models.OTP;
+using MizanGraduationProject.Repositories.LoginOTP;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
+using Microsoft.EntityFrameworkCore;
+using MizanGraduationProject.Repositories.Lawyer;
 
 namespace MizanGraduationProject.Services.Auth
 {
@@ -22,10 +30,16 @@ namespace MizanGraduationProject.Services.Auth
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly AppDbContext _dbContext;
         private readonly IUserRepository _userRepository;
+        private readonly IVerifyOTPRepository _verifyOTPRepository;
+        private readonly ILoginOTPRepository _loginOTPRepository;
+        private readonly AppDbContext _appDbContext;
+        private readonly ILawyerRepository _lawyerRepository;
 
         public AuthService(UserManager<User> userManager, SignInManager<User> signInManager,
         IConfiguration configuration, IEmailService emailService,
-        RoleManager<IdentityRole> roleManager, AppDbContext dbContext, IUserRepository userRepository)
+        RoleManager<IdentityRole> roleManager, AppDbContext dbContext, IUserRepository userRepository, 
+        IVerifyOTPRepository verifyOTPRepository, ILoginOTPRepository loginOTPRepository, 
+        AppDbContext appDbContext, ILawyerRepository lawyerRepository)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -34,6 +48,10 @@ namespace MizanGraduationProject.Services.Auth
             _roleManager = roleManager;
             _dbContext = dbContext;
             _userRepository = userRepository;
+            _verifyOTPRepository = verifyOTPRepository;
+            _loginOTPRepository = loginOTPRepository;
+            _appDbContext = appDbContext;
+            _lawyerRepository = lawyerRepository;
         }
 
         private async Task assignRolesToUser(User user, List<string> roles)
@@ -74,20 +92,55 @@ namespace MizanGraduationProject.Services.Auth
                     StatusCode = 403
                 };
             }
+            var userType = await _appDbContext.UserTypeModels.Where(e => e.NormalizedName == registerDto.UserType.ToUpper()).FirstOrDefaultAsync();
+            if(userType == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = "Invalid user Type",
+                    StatusCode = 403
+                };
+            }
             var user = _GetUserFromRegisterDto(registerDto);
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
                 var createUser = await _userManager.CreateAsync(user, registerDto.Password);
                 await assignRolesToUser(user, null!);
+                if(userType.NormalizedName == "LAWYER")
+                {
+                    await _lawyerRepository.AddAsync(new Data.Models.Lawyer
+                    {
+                        UserId = user.Id,
+                    });
+                }
+                string code = _GenerateCode();
+                var verify = await _verifyOTPRepository.GetByUserIdAsync(user.Id);
+                if(verify != null)
+                {
+                    await _verifyOTPRepository.DeleteByUserIdAsync(user.Id);
+                }
+                await _verifyOTPRepository.AddAsync(new Data.Models.OTP.VerifyOTP
+                {
+                    Code = code,
+                    UserID = user.Id
+                });
+                try
+                {
+                    _emailService.SendEmail(new Message(new string[] { registerDto.Email },
+                            $"Confirmation Email Code", $"{code}"));
+                }
+                catch (Exception ex) 
+                {
+                    throw new Exception(ex.Message);
+                }
                 await transaction.CommitAsync();
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 return new ResponseModel<string>
                 {
                     Success = true,
-                    Message = "Account created successfully",
+                    Message = "Account created successfully, please check your inbox",
                     StatusCode = 201,
-                    Model = token
                 };
             }
             catch (Exception)
@@ -102,21 +155,48 @@ namespace MizanGraduationProject.Services.Auth
             };
         }
 
-        public async Task<ResponseModel<User>> VerifyEmail(string email, string Token)
+        public async Task<ResponseModel<User>> VerifyEmail(VerifyEmailDTO verifyEmailDTO)
         {
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user != null)
+            var user = await _userManager.FindByEmailAsync(verifyEmailDTO.Email);
+            if (user == null)
             {
-                var verify = await _userManager.ConfirmEmailAsync(user, Token);
-                if (verify.Succeeded)
+                return new ResponseModel<User>
                 {
-                    return new ResponseModel<User>
-                    {
-                        Success = true,
-                        Message = "Email Verified Successfully",
-                        StatusCode = 200
-                    };
-                }
+                    Success = false,
+                    Message = "Failed To Verify Email",
+                    StatusCode = 500
+                };
+            }
+            VerifyOTP verify = await _verifyOTPRepository.GetByUserIdAsync(user.Id);
+            if (verify == null)
+            {
+                return new ResponseModel<User>
+                {
+                    Success = false,
+                    Message = "Failed To Verify Email",
+                    StatusCode = 500
+                };
+            }
+            if(verify.ExpiredAt < DateTime.UtcNow)
+            {
+                return new ResponseModel<User>
+                {
+                    Success = true,
+                    Message = "Token Has Expired",
+                    StatusCode = 200
+                };
+            }
+            if(verify.Code == verifyEmailDTO.Token)
+            {
+                user.EmailConfirmed = true;
+                await _userManager.UpdateAsync(user);
+                await _verifyOTPRepository.DeleteByIdAsync(verify.ID);
+                return new ResponseModel<User>
+                {
+                    Success = true,
+                    Message = "Email Verified Successfully",
+                    StatusCode = 200
+                };
             }
             return new ResponseModel<User>
             {
@@ -165,13 +245,31 @@ namespace MizanGraduationProject.Services.Auth
             }
             if (user.TwoFactorEnabled)
             {
-                string token = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+                var verify = await _loginOTPRepository.GetByUserIdAsync(user.Id);
+                if(verify != null)
+                {
+                    await _loginOTPRepository.DeleteByUserIdAsync(user.Id);
+                }
+                string code = _GenerateCode();
+                await _loginOTPRepository.AddAsync(new Data.Models.OTP.LoginOTP
+                {
+                    Code = code,
+                    UserID = user.Id
+                });
+                try
+                {
+                    _emailService.SendEmail(new Message(new string[] { user.Email! },
+                            $"2fa Code", $"{code}"));
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(ex.Message);
+                }
                 return new ResponseModel<LoginResponse>
                 {
                     Success = true,
-                    Message = "2fa",
+                    Message = "Check your inbox to get 2fa code",
                     StatusCode = 200,
-                    Model = new LoginResponse { AccessToken = new TokenType { Token = token, ExpiryTokenDate = DateTime.Now.AddMinutes(10) } }
                 };
                 
             }
@@ -308,75 +406,102 @@ namespace MizanGraduationProject.Services.Auth
             };
         }
 
-        //public async Task<ResponseModel<string>> EnableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
-        //{
-        //    var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
-        //    if (user == null)
-        //    {
-        //        return new ResponseModel<string>
-        //        {
-        //            Success = false,
-        //            Message = $"user not found",
-        //            StatusCode = 404
-        //        };
-        //    }
-        //    if (user.TwoFactorEnabled)
-        //    {
-        //        return new ResponseModel<string>
-        //        {
-        //            Success = false,
-        //            Message = $"Two factor authentication active",
-        //            StatusCode = 403
-        //        };
-        //    }
-        //    await _userManager.SetTwoFactorEnabledAsync(user, true);
-        //    await _userManager.UpdateAsync(user);
-        //    return new ResponseModel<string>
-        //    {
-        //        Success = true,
-        //        Message = $"Two factor authentication enabled successfully",
-        //        StatusCode = 200,
-        //    };
-        //}
+        public async Task<ResponseModel<string>> EnableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
+        {
+            var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
+            if (user == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"user not found",
+                    StatusCode = 404
+                };
+            }
+            if (user.TwoFactorEnabled)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"Two factor authentication active",
+                    StatusCode = 403
+                };
+            }
+            await _userManager.SetTwoFactorEnabledAsync(user, true);
+            await _userManager.UpdateAsync(user);
+            return new ResponseModel<string>
+            {
+                Success = true,
+                Message = $"Two factor authentication enabled successfully",
+                StatusCode = 200,
+            };
+        }
 
-        //public async Task<ResponseModel<string>> DisableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
-        //{
-        //    var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
-        //    if (user == null)
-        //    {
-        //        return new ResponseModel<string>
-        //        {
-        //            Success = false,
-        //            Message = $"user not found",
-        //            StatusCode = 404
-        //        };
-        //    }
-        //    if (!user.TwoFactorEnabled)
-        //    {
-        //        return new ResponseModel<string>
-        //        {
-        //            Success = false,
-        //            Message = $"Two factor authentication not active",
-        //            StatusCode = 403
-        //        };
-        //    }
-        //    await _userManager.SetTwoFactorEnabledAsync(user, false);
-        //    await _userManager.UpdateAsync(user);
-        //    return new ResponseModel<string>
-        //    {
-        //        Success = true,
-        //        Message = $"Two factor authentication disabled successfully",
-        //        StatusCode = 200,
-        //    };
-        //}
+        public async Task<ResponseModel<string>> DisableTwoFactorAuthenticationAsync(EnableDisable2fa enableDisable2Fa)
+        {
+            var user = await _userManager.FindByEmailAsync(enableDisable2Fa.Email);
+            if (user == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"user not found",
+                    StatusCode = 404
+                };
+            }
+            if (!user.TwoFactorEnabled)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = $"Two factor authentication not active",
+                    StatusCode = 403
+                };
+            }
+            await _userManager.SetTwoFactorEnabledAsync(user, false);
+            await _userManager.UpdateAsync(user);
+            return new ResponseModel<string>
+            {
+                Success = true,
+                Message = $"Two factor authentication disabled successfully",
+                StatusCode = 200,
+            };
+        }
 
         public async Task<ResponseModel<LoginResponse>> Login2fa(Login2faDTO login2FaDTO)
         {
-            //await _signInManager.PasswordSignInAsync(login2FaDTO.Email, "", false, false);
             var user = await _userManager.FindByEmailAsync(login2FaDTO.Email);
-            var signIn = await _signInManager.TwoFactorSignInAsync("Email", login2FaDTO.Token, false, true);
-            if (!signIn.Succeeded && user != null)
+            if (user == null)
             {
+                return new ResponseModel<LoginResponse>
+                {
+                    Success = false,
+                    Message = $"invalid email or token",
+                    StatusCode = 400
+                };
+            }
+            var verify = await _loginOTPRepository.GetByUserIdAsync(user.Id);
+            if(verify == null)
+            {
+                return new ResponseModel<LoginResponse>
+                {
+                    Success = false,
+                    Message = $"invalid email or token",
+                    StatusCode = 400
+                };
+            }
+            if(verify.ExpiredAt < DateTime.UtcNow)
+            {
+                return new ResponseModel<LoginResponse>
+                {
+                    Success = false,
+                    Message = $"Token Expired",
+                    StatusCode = 500
+                };
+            }
+            if(login2FaDTO.Token == verify.Code)
+            {
+                await _loginOTPRepository.DeleteByUserIdAsync(user.Id);
                 return await _GetJwtTokenAsync(user);
             }
             return new ResponseModel<LoginResponse>
@@ -384,6 +509,66 @@ namespace MizanGraduationProject.Services.Auth
                 Success = false,
                 Message = $"invalid email or token",
                 StatusCode = 400
+            };
+        }
+
+        private string _GenerateCode()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            Random random = new Random();
+            for (int i=1;i<=6; i++)
+            {
+                stringBuilder.Append($"{random.Next(0, 9)}");
+            }
+            return stringBuilder.ToString();
+        }
+
+        public async Task<ResponseModel<string>> GetNewVerifyEmailCode(NewVerifyEmailCodeDTO newVerifyEmailCodeDTO)
+        {
+            var user = await _userManager.FindByEmailAsync(newVerifyEmailCodeDTO.Email);
+            if (user == null)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = "Check your inbox",
+                    StatusCode = 200
+                };
+            }
+            if (user.EmailConfirmed)
+            {
+                return new ResponseModel<string>
+                {
+                    Success = false,
+                    Message = "Email Already Verified",
+                    StatusCode = 403
+                };
+            }
+            VerifyOTP verify = await _verifyOTPRepository.GetByUserIdAsync(user.Id);
+            if (verify != null)
+            {
+                await _verifyOTPRepository.DeleteByIdAsync(verify.ID);
+            }
+            string code = _GenerateCode();
+            await _verifyOTPRepository.AddAsync(new Data.Models.OTP.VerifyOTP
+            {
+                Code = code,
+                UserID = user.Id
+            });
+            try
+            {
+                _emailService.SendEmail(new Message(new string[] { newVerifyEmailCodeDTO.Email },
+                        $"Confirmation Email Code", $"{code}"));
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+            return new ResponseModel<string>
+            {
+                Success = false,
+                Message = "Check your inbox",
+                StatusCode = 200
             };
         }
     }

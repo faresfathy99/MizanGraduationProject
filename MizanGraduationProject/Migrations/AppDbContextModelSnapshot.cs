@@ -275,11 +275,9 @@ namespace MizanGraduationProject.Migrations
                         .HasDefaultValueSql("getdate()");
 
                     b.Property<string>("Location")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SpecializationId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime>("StartedAt")
@@ -336,6 +334,68 @@ namespace MizanGraduationProject.Migrations
                         .IsUnique();
 
                     b.ToTable("Locations");
+                });
+
+            modelBuilder.Entity("MizanGraduationProject.Data.Models.OTP.LoginOTP", b =>
+                {
+                    b.Property<string>("ID")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("getdate()");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("DATEADD(minute, 10, GETDATE())");
+
+                    b.Property<string>("UserID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("UserID")
+                        .IsUnique();
+
+                    b.ToTable("LoginOTPs");
+                });
+
+            modelBuilder.Entity("MizanGraduationProject.Data.Models.OTP.VerifyOTP", b =>
+                {
+                    b.Property<string>("ID")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("getdate()");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("DATEADD(minute, 10, GETDATE())");
+
+                    b.Property<string>("UserID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("UserID")
+                        .IsUnique();
+
+                    b.ToTable("VerifyOTPs");
                 });
 
             modelBuilder.Entity("MizanGraduationProject.Data.Models.Rating", b =>
@@ -461,6 +521,10 @@ namespace MizanGraduationProject.Migrations
                         .HasDefaultValueSql("getdate()");
 
                     b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NormalizedName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -695,9 +759,7 @@ namespace MizanGraduationProject.Migrations
                 {
                     b.HasOne("MizanGraduationProject.Data.Models.Specialization", "Specialization")
                         .WithMany("Lawyers")
-                        .HasForeignKey("SpecializationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SpecializationId");
 
                     b.HasOne("MizanGraduationProject.Data.Models.User", "User")
                         .WithOne("Lawyer")
@@ -706,6 +768,28 @@ namespace MizanGraduationProject.Migrations
                         .IsRequired();
 
                     b.Navigation("Specialization");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MizanGraduationProject.Data.Models.OTP.LoginOTP", b =>
+                {
+                    b.HasOne("MizanGraduationProject.Data.Models.User", "User")
+                        .WithMany("LoginOTPs")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MizanGraduationProject.Data.Models.OTP.VerifyOTP", b =>
+                {
+                    b.HasOne("MizanGraduationProject.Data.Models.User", "User")
+                        .WithMany("VerifyOTPs")
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
@@ -792,9 +876,13 @@ namespace MizanGraduationProject.Migrations
                     b.Navigation("Lawyer")
                         .IsRequired();
 
+                    b.Navigation("LoginOTPs");
+
                     b.Navigation("Ratings");
 
                     b.Navigation("Reviews");
+
+                    b.Navigation("VerifyOTPs");
                 });
 #pragma warning restore 612, 618
         }

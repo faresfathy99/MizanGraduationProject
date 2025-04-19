@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MizanGraduationProject.Data.Models;
 using MizanGraduationProject.Data.Models.ModelsConfigurations;
+using MizanGraduationProject.Data.Models.OTP;
 
 namespace MizanGraduationProject.Data
 {
@@ -46,7 +47,9 @@ namespace MizanGraduationProject.Data
                    .ApplyConfiguration(new BookingConfiguration())
                    .ApplyConfiguration(new RatingConfiguration())
                    .ApplyConfiguration(new LocationConfiguration())
-                   .ApplyConfiguration(new UserTypeConfiguration());
+                   .ApplyConfiguration(new UserTypeConfiguration())
+                   .ApplyConfiguration(new LoginOtpConfiguration())
+                   .ApplyConfiguration(new VerifyOTPConfigurations());
         }
         public DbSet<Lawyer> Lawyers { get; set; }
         public DbSet<Review> Reviews { get; set; }
@@ -58,5 +61,7 @@ namespace MizanGraduationProject.Data
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<Location> Locations { get; set; }
         public DbSet<UserTypeModel> UserTypeModels { get; set; }
+        public DbSet<LoginOTP> LoginOTPs { get; set; }
+        public DbSet<VerifyOTP> VerifyOTPs { get; set; }
     }
 }

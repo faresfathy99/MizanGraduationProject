@@ -23,6 +23,15 @@ namespace MizanGraduationProject.Data.DTOs
         public string PhoneNumber { get; set; } = null!;
 
         [Required(ErrorMessage = "Password should be at least 8 digits containg lower, upper case characters and special characters")]
+        [DataType(DataType.Password)]
         public string Password { get; set; } = null!;
+
+        [Required(ErrorMessage = "Password should be at least 8 digits containg lower, upper case characters and special characters")]
+        [DataType(DataType.Password)]
+        [Compare("Password", ErrorMessage = "Passwords do not match")]
+        public string ConfirmPassword { get; set; } = null!;
+
+        [Required(ErrorMessage = "Please Enter your User Type")]
+        public string UserType { get; set; } = null!;
     }
 }

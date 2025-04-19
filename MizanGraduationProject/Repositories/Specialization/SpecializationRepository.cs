@@ -42,6 +42,11 @@ namespace MizanGraduationProject.Repositories.Specialization
             return await _dbContext.Specializations.AnyAsync(t => t.Id == id);
         }
 
+        public async Task<bool> ExistsBynameAsync(string name)
+        {
+            return await _dbContext.Specializations.AnyAsync(t => t.NormalizedName == name.ToUpper());
+        }
+
         public async Task<IEnumerable<Data.Models.Specialization>> GetAllAsync()
         {
             return await _dbContext.Specializations.ToListAsync();
@@ -53,6 +58,16 @@ namespace MizanGraduationProject.Repositories.Specialization
             if (isSpecializationExists)
             {
                 return (await _dbContext.Specializations.Where(e => e.Id == id).FirstOrDefaultAsync())!;
+            }
+            return null!;
+        }
+
+        public async Task<Data.Models.Specialization> GetByNameAsync(string name)
+        {
+            bool isSpecializationExists = await ExistsBynameAsync(name);
+            if (isSpecializationExists)
+            {
+                return (await _dbContext.Specializations.Where(e => e.NormalizedName == name.ToUpper()).FirstOrDefaultAsync())!;
             }
             return null!;
         }

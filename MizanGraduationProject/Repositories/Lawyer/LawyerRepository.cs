@@ -1,15 +1,25 @@
 ﻿
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MizanGraduationProject.Data;
+using MizanGraduationProject.Data.Classes.Filter;
+using MizanGraduationProject.Data.DTOs;
+using MizanGraduationProject.Data.Models;
+using MizanGraduationProject.Repositories.Specialization;
 
 namespace MizanGraduationProject.Repositories.Lawyer
 {
     public class LawyerRepository : ILawyerRepository
     {
         private readonly AppDbContext _dbContext;
-        public LawyerRepository(AppDbContext _dbContext)
+        private readonly ISpecializationRepository _specializationRepository;
+        private readonly UserManager<Data.Models.User> _userManager;
+        public LawyerRepository(AppDbContext _dbContext, ISpecializationRepository specializationRepository,
+            UserManager<Data.Models.User> userManager)
         {
             this._dbContext = _dbContext;
+            _specializationRepository = specializationRepository;
+            _userManager = userManager;
         }
         public async Task AddAsync(Data.Models.Lawyer t)
         {
@@ -47,6 +57,61 @@ namespace MizanGraduationProject.Repositories.Lawyer
             return await _dbContext.Lawyers.ToListAsync();
         }
 
+        public async Task<IEnumerable<object>> GetAllWithFilterAsync(FilterLawyersDTO filterLawyersDTO)
+        {
+            var specialization = await _specializationRepository.GetByNameAsync(filterLawyersDTO.Specialization);
+            var location = await _dbContext.Locations.Where(e=>e.NormalizedName==filterLawyersDTO.Specialization.ToUpper()).FirstOrDefaultAsync();
+            if (specialization != null && location == null)
+            {
+                var lawyers = await _dbContext.Lawyers
+                    .Where(
+                    e=>e.SpecializationId == specialization.Id)
+                    .ToListAsync();
+                return await _Result(lawyers);
+            }
+            if (specialization == null && location != null)
+            {
+                var lawyers = await _dbContext.Lawyers
+                    .Where(
+                    e => e.Location.ToUpper() == location.NormalizedName)
+                    .ToListAsync();
+                return await _Result(lawyers);
+            }
+            if (specialization != null && location != null)
+            {
+                var lawyers = await _dbContext.Lawyers
+                    .Where(
+                    e => e.Location.ToUpper() == location.NormalizedName)
+                    .Where(
+                    e=>e.SpecializationId == specialization.Id
+                    )
+                    .ToListAsync();
+
+                return await _Result(lawyers);
+            }
+            var result = (await GetAllAsync()).ToList();
+            return await _Result(result);
+        }
+
+        private async Task<IEnumerable<FilterResult>> _Result(List<Data.Models.Lawyer> lawyers)
+        {
+            List<FilterResult> results = new List<FilterResult>();
+            foreach(var lawyer in lawyers)
+            {
+                var user = await _userManager.FindByIdAsync(lawyer.UserId);
+                if (user == null) continue;
+                var specialization = await _specializationRepository.GetByIdAsync(lawyer.SpecializationId);
+                results.Add(new FilterResult
+                {
+                    Id = user.Id,
+                    Location = lawyer.Location,
+                    Name = $"{user.FirstName} {user.LastName}",
+                    Specialization = specialization == null ? null! : specialization.NormalizedName
+                });
+            }
+            return results;
+        }
+
         public async Task<Data.Models.Lawyer> GetByIdAsync(string id)
         {
             bool isLawyerExists = await ExistsAsync(id);
@@ -73,6 +138,7 @@ namespace MizanGraduationProject.Repositories.Lawyer
                     existLawyer.Location = t.Location;
                     existLawyer.SpecializationId = t.SpecializationId;
                     existLawyer.UpdatedAt = DateTime.UtcNow;
+                    await _dbContext.SaveChangesAsync();
                     return true;
                 }
                 return false;

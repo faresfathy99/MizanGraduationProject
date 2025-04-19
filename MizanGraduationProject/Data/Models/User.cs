@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using MizanGraduationProject.Data.Models.OTP;
 
 namespace MizanGraduationProject.Data.Models
 {
@@ -13,5 +14,7 @@ namespace MizanGraduationProject.Data.Models
         public List<Review> Reviews { get; set; } = null!;
         public List<Booking> Bookings { get; set; } = null!;
         public List<Rating> Ratings { get; set; } = null!;
+        public List<LoginOTP> LoginOTPs { get; set; } = null!;
+        public List<VerifyOTP> VerifyOTPs { get; set; } = null!;
     }
 }

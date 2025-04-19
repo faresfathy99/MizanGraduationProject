@@ -23,27 +23,14 @@ namespace MizanGraduationProject.Controllers
         [HttpPost("register")]
         [ProducesResponseType(201)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> Register([FromForm] RegisterDTO registerDto)
+        public async Task<IActionResult> Register([FromBody] RegisterDTO registerDto)
         {
             try
             {
                 var response = await _authService.Register(registerDto);
                 if (response.Success)
                 {
-                    string url = Url.Action(
-                        "VerifyEmail",
-                        "Auth",
-                        new { email = registerDto.Email, Token = response.Model },
-                        protocol: HttpContext.Request.Scheme)!;
-                    var message = new Message(new string[] { registerDto.Email },
-                            "Confirmation Email Token", url);
-                    _emailService.SendEmail(message);
-                    return Ok(new
-                    {
-                        Success = response.Success,
-                        StatusCode = response.StatusCode,
-                        Message = "We sent comfirmation link to your email Check your inbox to verify your email"
-                    });
+                    return StatusCode(201, response);
                 }
                 return StatusCode(500, response);
             }
@@ -58,14 +45,35 @@ namespace MizanGraduationProject.Controllers
             }
         }
 
-        [HttpGet("verify-email")]
+        [HttpPost("verify-email")]
         [ProducesResponseType(200)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> VerifyEmail(string email, string Token)
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailDTO verifyEmailDTO)
         {
             try
             {
-                var response = await _authService.VerifyEmail(email, Token);
+                var response = await _authService.VerifyEmail(verifyEmailDTO);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseModel<bool>
+                {
+                    Message = ex.Message,
+                    Success = false,
+                    StatusCode = 500
+                });
+            }
+        }
+
+        [HttpPost("get-new-verify-email-code")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> GetNewVerifyEmailCode([FromBody] NewVerifyEmailCodeDTO newVerifyEmailCodeDTO)
+        {
+            try
+            {
+                var response = await _authService.GetNewVerifyEmailCode(newVerifyEmailCodeDTO);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -83,24 +91,11 @@ namespace MizanGraduationProject.Controllers
         [ProducesResponseType(201)]
         [ProducesResponseType(500)]
         [ProducesResponseType(406)]
-        public async Task<IActionResult> Login([FromForm] LoginDTO loginDto)
+        public async Task<IActionResult> Login([FromBody] LoginDTO loginDto)
         {
             try
             {
                 var response = await _authService.Login(loginDto);
-                //if(response.Message == "2fa")
-                //{
-                //    string token = response.Model.AccessToken!.Token;
-                //    var message = new Message(new string[] { loginDto.Email },
-                //            "two factor authentication Token", token);
-                //    _emailService.SendEmail(message);
-                //    return Ok(new
-                //    {
-                //        Success = response.Success,
-                //        StatusCode = response.StatusCode,
-                //        Message = "two factor token sent to you check your inbox"
-                //    });
-                //}
                 if (response.Success)
                 {
                     return Ok(response);
@@ -118,31 +113,31 @@ namespace MizanGraduationProject.Controllers
             }
         }
 
-        //[HttpPost("login-2fa")]
-        //[ProducesResponseType(201)]
-        //[ProducesResponseType(500)]
-        //[ProducesResponseType(400)]
-        //public async Task<IActionResult> Login2fa([FromForm] Login2faDTO login2FaDTO)
-        //{
-        //    try
-        //    {
-        //        var response = await _authService.Login2fa(login2FaDTO);
-        //        if (response.Success)
-        //        {
-        //            return Ok(response);
-        //        }
-        //        return StatusCode(400, response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new
-        //        {
-        //            Message = ex.Message,
-        //            Success = false,
-        //            StatusCode = 500
-        //        });
-        //    }
-        //}
+        [HttpPost("login-2fa")]
+        [ProducesResponseType(201)]
+        [ProducesResponseType(500)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> Login2fa([FromBody] Login2faDTO login2FaDTO)
+        {
+            try
+            {
+                var response = await _authService.Login2fa(login2FaDTO);
+                if (response.Success)
+                {
+                    return Ok(response);
+                }
+                return StatusCode(400, response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = ex.Message,
+                    Success = false,
+                    StatusCode = 500
+                });
+            }
+        }
 
         [HttpGet("logout")]
         public async Task<IActionResult> Logout()
@@ -156,7 +151,7 @@ namespace MizanGraduationProject.Controllers
         [ProducesResponseType(201)]
         [ProducesResponseType(500)]
         [ProducesResponseType(406)]
-        public async Task<IActionResult> ForgetPassword([FromForm] ForgetPasswordDto forgetPasswordDto)
+        public async Task<IActionResult> ForgetPassword([FromBody] ForgetPasswordDto forgetPasswordDto)
         {
             try
             {
@@ -208,49 +203,49 @@ namespace MizanGraduationProject.Controllers
             }
         }
 
-        //[HttpPost("enable-2fa")]
-        //[ProducesResponseType(201)]
-        //[ProducesResponseType(500)]
-        //[ProducesResponseType(406)]
-        //public async Task<IActionResult> EnableTwoFactorAuthenticationAsync([FromForm] EnableDisable2fa enableDisable2Fa)
-        //{
-        //    try
-        //    {
-        //        var response = await _authService.EnableTwoFactorAuthenticationAsync(enableDisable2Fa);
-        //        return Ok(response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new
-        //        {
-        //            Message = ex.Message,
-        //            Success = false,
-        //            StatusCode = 500
-        //        });
-        //    }
-        //}
+        [HttpPost("enable-2fa")]
+        [ProducesResponseType(201)]
+        [ProducesResponseType(500)]
+        [ProducesResponseType(406)]
+        public async Task<IActionResult> EnableTwoFactorAuthenticationAsync([FromBody] EnableDisable2fa enableDisable2Fa)
+        {
+            try
+            {
+                var response = await _authService.EnableTwoFactorAuthenticationAsync(enableDisable2Fa);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = ex.Message,
+                    Success = false,
+                    StatusCode = 500
+                });
+            }
+        }
 
-        //[HttpPost("disable-2fa")]
-        //[ProducesResponseType(201)]
-        //[ProducesResponseType(500)]
-        //[ProducesResponseType(406)]
-        //public async Task<IActionResult> DisableTwoFactorAuthenticationAsync([FromForm] EnableDisable2fa enableDisable2Fa)
-        //{
-        //    try
-        //    {
-        //        var response = await _authService.DisableTwoFactorAuthenticationAsync(enableDisable2Fa);
-        //        return Ok(response);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, new
-        //        {
-        //            Message = ex.Message,
-        //            Success = false,
-        //            StatusCode = 500
-        //        });
-        //    }
-        //}
+        [HttpPost("disable-2fa")]
+        [ProducesResponseType(201)]
+        [ProducesResponseType(500)]
+        [ProducesResponseType(406)]
+        public async Task<IActionResult> DisableTwoFactorAuthenticationAsync([FromBody] EnableDisable2fa enableDisable2Fa)
+        {
+            try
+            {
+                var response = await _authService.DisableTwoFactorAuthenticationAsync(enableDisable2Fa);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = ex.Message,
+                    Success = false,
+                    StatusCode = 500
+                });
+            }
+        }
 
 
     }
